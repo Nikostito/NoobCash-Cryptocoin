@@ -3,6 +3,9 @@ from time import time
 from utility.printable import Printable
 from utility.hash_util import hash_block
 
+
+
+
 class Block(Printable):
     """A single block of our blockchain.
 

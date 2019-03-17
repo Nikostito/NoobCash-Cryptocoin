@@ -14,6 +14,7 @@ from wallet import Wallet
 
 # The reward we give to miners (for creating a new block)
 MINING_REWARD = 10
+BLOCK_CAPACITY = 4
 
 print(__name__)
 
@@ -192,8 +193,6 @@ class Blockchain:
             tx_recipient,
             0
         )
-        if sender is None and self.public_key is not None:
-            amount_received = amount_received + 100
         # Return the total balance
         return amount_received - amount_sent
 
@@ -277,7 +276,7 @@ class Blockchain:
         # open_transactions list
         # This ensures that if for some reason the mining should fail,
         # we don't have the reward transaction stored in the open transactions
-        copied_transactions = self.__open_transactions[:]
+        copied_transactions = self.__open_transactions[0:BLOCK_CAPACITY]
         for tx in copied_transactions:
             if not Wallet.verify_transaction(tx):
                 return None
@@ -285,7 +284,11 @@ class Blockchain:
         block = Block(len(self.__chain), previous_hashed_block, current_hashed_block,
                       copied_transactions, nonce)
         self.__chain.append(block)
-        self.__open_transactions = []
+        if not self.__open_transactions:
+            self.__open_transactions = []
+        else:
+            for i in range(BLOCK_CAPACITY):
+                self.__open_transactions.pop(i)
         self.save_data()
         for node in self.__peer_nodes:
             url = 'http://{}/broadcast-block'.format(node)
@@ -306,13 +309,16 @@ class Blockchain:
         """Add a block which was received via broadcasting to the localb
         lockchain."""
         # Create a list of transaction objects
-        transactions = [Transaction(
-            tx['sender'],
-            tx['recipient'],
-            tx['signature'],
-            tx['amount']) for tx in block['transactions']]
+        transactions = []
+        for tx in block['transactions']:
+                transactions = [Transaction(
+                    tx['sender'],
+                    tx['recipient'],
+                    tx['signature'],
+                    tx['amount'])]
         # Validate the proof of work of the block and store the result (True
         # or False) in a variable
+        print(transactions)
         proof_is_valid = Verification.valid_proof(
             transactions[:-1], block['previous_hash'], block['nonce'])
         # Check if previous_hash stored in the block is equal to the local
