@@ -170,6 +170,8 @@
                                 <div class="card-body">
                                     <p>Previous Hash: {{ data.previous_hash }}</p>
                                     <p>Current Hash: {{ data.current_hash }}</p>
+                                    <p> Timestamp: {{data.timestamp}}</p>
+                                    <p> Nonce: {{data.nonce}}</p>
                                     <div class="list-group">
                                         <div v-for="tx in data.transactions" class="list-group-item flex-column align-items-start">
                                             <div>Sender: {{ tx.sender }}</div>
