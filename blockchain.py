@@ -1,6 +1,6 @@
 from functools import reduce
 import hashlib as hl
-
+import time
 import json
 import pickle
 import requests
@@ -31,7 +31,7 @@ class Blockchain:
     def __init__(self, public_key, node_id):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
-        genesis_block = Block(0, '', [], 100, 0)
+        genesis_block = Block(0, '1', 'n00b-c4sh1', [], 100, 0)
         # Initializing our (empty) blockchain list
         self.chain = [genesis_block]
         # Unhandled transactions
@@ -78,8 +78,9 @@ class Blockchain:
                     updated_block = Block(
                         block['index'],
                         block['previous_hash'],
+                        block['current_hash'],
                         converted_tx,
-                        block['proof'],
+                        block['nonce'],
                         block['timestamp'])
                     updated_blockchain.append(updated_block)
                 self.chain = updated_blockchain
@@ -111,8 +112,9 @@ class Blockchain:
                     [
                         Block(block_el.index,
                               block_el.previous_hash,
+                              block_el.current_hash,
                               [tx.__dict__ for tx in block_el.transactions],
-                              block_el.proof,
+                              block_el.nonce,
                               block_el.timestamp) for block_el in self.__chain
                     ]
                 ]
@@ -134,15 +136,17 @@ class Blockchain:
         """Generate a proof of work for the open transactions, the hash of the
         previous block and a random number (which is guessed until it fits)."""
         last_block = self.__chain[-1]
-        last_hash = hash_block(last_block)
-        proof = 0
+        last_block2 = last_block.__dict__.copy()
+        last_hash = last_block2['current_hash']
+        current_hash = hash_block(last_block)
+        nonce = 0
         # Try different PoW numbers and return the first valid one
         while not Verification.valid_proof(
             self.__open_transactions,
-            last_hash, proof
+            last_hash, nonce
         ):
-            proof += 1
-        return proof
+            nonce += 1
+        return nonce
 
     def get_balance(self, sender=None):
         """Calculate and return the balance for a participant.
@@ -253,12 +257,14 @@ class Blockchain:
         """Create a new block and add open transactions to it."""
         # Fetch the currently last block of the blockchain
         if self.public_key is None:
-            return None
+            return Nonep
         last_block = self.__chain[-1]
+        last_block2 = last_block.__dict__.copy()
+        previous_hashed_block = last_block2['current_hash']
         # Hash the last block (=> to be able to compare it to the stored hash
         # value)
-        hashed_block = hash_block(last_block)
-        proof = self.proof_of_work()
+        current_hashed_block = hash_block(last_block)
+        nonce = self.proof_of_work()
         # Miners should be rewarded, so let's create a reward transaction
         # reward_transaction = {
         #     'sender': 'MINING',
@@ -276,8 +282,8 @@ class Blockchain:
             if not Wallet.verify_transaction(tx):
                 return None
         copied_transactions.append(reward_transaction)
-        block = Block(len(self.__chain), hashed_block,
-                      copied_transactions, proof)
+        block = Block(len(self.__chain), previous_hashed_block, current_hashed_block,
+                      copied_transactions, nonce)
         self.__chain.append(block)
         self.__open_transactions = []
         self.save_data()
@@ -308,18 +314,20 @@ class Blockchain:
         # Validate the proof of work of the block and store the result (True
         # or False) in a variable
         proof_is_valid = Verification.valid_proof(
-            transactions[:-1], block['previous_hash'], block['proof'])
+            transactions[:-1], block['previous_hash'], block['nonce'])
         # Check if previous_hash stored in the block is equal to the local
         # blockchain's last block's hash and store the result in a block
         hashes_match = hash_block(self.chain[-1]) == block['previous_hash']
+        current_hash= self.chain[index]
         if not proof_is_valid or not hashes_match:
             return False
         # Create a Block object
         converted_block = Block(
             block['index'],
             block['previous_hash'],
+            block['current_hash'],
             transactions,
-            block['proof'],
+            block['nonce'],
             block['timestamp'])
         self.__chain.append(converted_block)
         stored_transactions = self.__open_transactions[:]
@@ -358,6 +366,7 @@ class Blockchain:
                 node_chain = [
                     Block(block['index'],
                           block['previous_hash'],
+                          block['current_hash'],
                           [
                         Transaction(
                             tx['sender'],
@@ -365,7 +374,7 @@ class Blockchain:
                             tx['signature'],
                             tx['amount']) for tx in block['transactions']
                     ],
-                        block['proof'],
+                        block['nonce'],
                         block['timestamp']) for block in node_chain
                 ]
                 node_chain_length = len(node_chain)

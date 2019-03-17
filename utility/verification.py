@@ -8,7 +8,7 @@ class Verification:
     """A helper class which offer various static and class-based verification
     and validation methods."""
     @staticmethod
-    def valid_proof(transactions, last_hash, proof):
+    def valid_proof(transactions, last_hash, nonce):
         """Validate a proof of work number and see if it solves the puzzle
         algorithm (two leading 0s)
 
@@ -21,7 +21,7 @@ class Verification:
         """
         # Create a string with all the hash inputs
         guess = (str([tx.to_ordered_dict() for tx in transactions]
-                     ) + str(last_hash) + str(proof)).encode()
+                     ) + str(last_hash) + str(nonce)).encode()
         # Hash the string
         # IMPORTANT: This is NOT the same hash as will be stored in the
         # previous_hash. It's a not a block's hash. It's only used for the
@@ -45,7 +45,7 @@ class Verification:
                 return False
             if not cls.valid_proof(block.transactions[:-1],
                                    block.previous_hash,
-                                   block.proof):
+                                   block.nonce):
                 print('Proof of work is invalid')
                 return False
         return True

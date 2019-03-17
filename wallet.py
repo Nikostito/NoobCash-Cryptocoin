@@ -4,7 +4,6 @@ from Crypto.Hash import SHA256
 import Crypto.Random
 import binascii
 
-
 class Wallet:
     """Creates, loads and holds private and public keys. Manages transaction
     signing and verification."""
