@@ -178,7 +178,10 @@
                                             <div>Recipient: {{ tx.recipient }}</div>
                                             <div>Amount: {{ tx.amount }}</div>
                                             <div>Transaction ID: {{ tx.id }}</div>
-
+                                            <div class="list-group">
+                                              <div>Transactions Input List: {{ tx.tx_recipient }}</div>
+                                              <div>Transactions Output List: {{ tx.tx_sender }}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -199,6 +202,12 @@
                                             <div>Recipient: {{ data.recipient }}</div>
                                             <div>Amount: {{ data.amount }}</div>
                                             <div>Transaction ID: {{data.id}}</div>
+                                            <div class="list-group">
+                                              <div v-for="tx in data.transactions" class="list-group-item flex-column align-items-start">
+                                                <div>Transactions Input List: {{ tx.tx_recipient }}</div>
+                                                <div>Transactions Output List: {{ tx.tx_sender }}</div>
+                                              </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

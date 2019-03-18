@@ -32,7 +32,7 @@ class Blockchain:
     def __init__(self, public_key, node_id):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
-        genesis_block = Block(0, '1', 'n00b-c4sh1', [], 100, 0)
+        genesis_block = Block(0, '1', 'n00b-c4sh1', [], 0, 0)
         # Initializing our (empty) blockchain list
         self.chain = [genesis_block]
         # Unhandled transactions
@@ -76,6 +76,8 @@ class Blockchain:
                         tx['recipient'],
                         tx['signature'],
                         tx['amount'],
+                        tx['tx_sender'],
+                        tx['tx_recipient'],
                         tx['id']) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'],
@@ -96,6 +98,8 @@ class Blockchain:
                         tx['recipient'],
                         tx['signature'],
                         tx['amount'],
+                        tx['tx_sender'],
+                        tx['tx_recipient'],
                         tx['id'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
@@ -175,7 +179,6 @@ class Blockchain:
             if tx.sender == participant
         ]
         tx_sender.append(open_tx_sender)
-        print(tx_sender)
         amount_sent = reduce(lambda tx_sum, tx_amt: tx_sum + sum(tx_amt)
                              if len(tx_amt) > 0 else tx_sum + 0, tx_sender, 0)
         # This fetches received coin amounts of transactions that were already
@@ -230,8 +233,23 @@ class Blockchain:
         # }
         # if self.public_key == None:
         #     return False
-        transaction = Transaction(sender, recipient, signature, amount, id)
+        if sender is None:
+            if self.public_key is None:
+                return None
+            participant = self.public_key
+        else:
+            participant = sender
+        tx_sender = [[tx.amount for tx in block.transactions
+                      if tx.sender == participant] for block in self.__chain]
+        tx_recipient = [
+            [
+                tx.amount for tx in block.transactions
+                if tx.recipient == participant
+            ] for block in self.__chain
+        ]
+        transaction = Transaction(sender, recipient, signature, amount, tx_sender, tx_recipient, id)
         if Verification.verify_transaction(transaction, self.get_balance):
+            print(transaction.tx_recipient)
             self.__open_transactions.append(transaction)
             self.save_data()
             if not is_receiving:
@@ -273,8 +291,20 @@ class Blockchain:
         #     'recipient': owner,
         #     'amount': MINING_REWARD
         # }
+
+        if self.public_key is None:
+            return None
+        participant = self.public_key
+        tx_sender = [[tx.amount for tx in block.transactions
+                      if tx.sender == participant] for block in self.__chain]
+        tx_recipient = [
+            [
+                tx.amount for tx in block.transactions
+                if tx.recipient == participant
+            ] for block in self.__chain
+        ]
         reward_transaction = Transaction(
-            'MINING', self.public_key, '', MINING_REWARD, id)
+            'MINING', self.public_key, '', MINING_REWARD, tx_sender, tx_recipient, id)
         # Copy transaction instead of manipulating the original
         # open_transactions list
         # This ensures that if for some reason the mining should fail,
@@ -291,7 +321,8 @@ class Blockchain:
             self.__open_transactions = []
         else:
             for i in range(BLOCK_CAPACITY):
-                self.__open_transactions.pop(i)
+                if self.__open_transactions:
+                    self.__open_transactions.pop()
         self.save_data()
         for node in self.__peer_nodes:
             url = 'http://{}/broadcast-block'.format(node)
@@ -319,10 +350,11 @@ class Blockchain:
                     tx['recipient'],
                     tx['signature'],
                     tx['amount'],
+                    tx['tx_sender'],
+                    tx['tx_recipient'],
                     tx['id'])]
         # Validate the proof of work of the block and store the result (True
         # or False) in a variable
-        print(transactions)
         proof_is_valid = Verification.valid_proof(
             transactions[:-1], block['previous_hash'], block['nonce'])
         # Check if previous_hash stored in the block is equal to the local
@@ -380,6 +412,8 @@ class Blockchain:
                             tx['recipient'],
                             tx['signature'],
                             tx['amount'],
+                            tx['tx_sender'],
+                            tx['tx_recipient'],
                             tx['id']) for tx in block['transactions']
                     ],
                         block['nonce'],
