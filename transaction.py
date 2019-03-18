@@ -27,4 +27,6 @@ class Transaction(Printable):
         """Converts this transaction into a (hashable) OrderedDict."""
         return OrderedDict([('sender', self.sender),
                             ('recipient', self.recipient),
-                            ('amount', self.amount)])
+                            ('amount', self.amount),
+                            ('tx_sender', self.tx_sender),
+                            ('tx_recipient', self.tx_recipient)])

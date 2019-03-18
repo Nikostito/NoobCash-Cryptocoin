@@ -241,6 +241,11 @@ class Blockchain:
             participant = sender
         tx_sender = [[tx.amount for tx in block.transactions
                       if tx.sender == participant] for block in self.__chain]
+        open_tx_sender = [
+            tx.amount for tx in self.__open_transactions
+            if tx.sender == participant
+        ]
+        tx_sender.append(open_tx_sender)
         tx_recipient = [
             [
                 tx.amount for tx in block.transactions
@@ -249,7 +254,6 @@ class Blockchain:
         ]
         transaction = Transaction(sender, recipient, signature, amount, tx_sender, tx_recipient, id)
         if Verification.verify_transaction(transaction, self.get_balance):
-            print(transaction.tx_recipient)
             self.__open_transactions.append(transaction)
             self.save_data()
             if not is_receiving:
@@ -297,6 +301,11 @@ class Blockchain:
         participant = self.public_key
         tx_sender = [[tx.amount for tx in block.transactions
                       if tx.sender == participant] for block in self.__chain]
+        open_tx_sender = [
+            tx.amount for tx in self.__open_transactions
+            if tx.sender == participant
+        ]
+        tx_sender.append(open_tx_sender)
         tx_recipient = [
             [
                 tx.amount for tx in block.transactions
