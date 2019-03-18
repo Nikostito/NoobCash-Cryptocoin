@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 from utility.printable import Printable
+from utility.hash_util import hash_transaction
 
 
 class Transaction(Printable):
@@ -13,11 +14,12 @@ class Transaction(Printable):
         :amount: The amount of coins sent.
     """
 
-    def __init__(self, sender, recipient, signature, amount):
+    def __init__(self, sender, recipient, signature, amount, id):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
         self.signature = signature
+        self.id = hash_transaction(self)
 
     def to_ordered_dict(self):
         """Converts this transaction into a (hashable) OrderedDict."""

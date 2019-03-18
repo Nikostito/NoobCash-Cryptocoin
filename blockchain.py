@@ -14,7 +14,7 @@ from wallet import Wallet
 
 # The reward we give to miners (for creating a new block)
 MINING_REWARD = 10
-BLOCK_CAPACITY = 4
+BLOCK_CAPACITY = 4 # To kanoniko block capcity einai to val ths metablhths auths + 1 ka8ws ksekinane ta transactions apo to #index 0
 
 print(__name__)
 
@@ -75,7 +75,8 @@ class Blockchain:
                         tx['sender'],
                         tx['recipient'],
                         tx['signature'],
-                        tx['amount']) for tx in block['transactions']]
+                        tx['amount'],
+                        tx['id']) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'],
                         block['previous_hash'],
@@ -94,7 +95,8 @@ class Blockchain:
                         tx['sender'],
                         tx['recipient'],
                         tx['signature'],
-                        tx['amount'])
+                        tx['amount'],
+                        tx['id'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
                 peer_nodes = json.loads(file_content[2])
@@ -228,7 +230,7 @@ class Blockchain:
         # }
         # if self.public_key == None:
         #     return False
-        transaction = Transaction(sender, recipient, signature, amount)
+        transaction = Transaction(sender, recipient, signature, amount, id)
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -241,6 +243,7 @@ class Blockchain:
                                                      'sender': sender,
                                                      'recipient': recipient,
                                                      'amount': amount,
+                                                     'id': id,
                                                      'signature': signature
                                                  })
                         if (response.status_code == 400 or
@@ -256,7 +259,7 @@ class Blockchain:
         """Create a new block and add open transactions to it."""
         # Fetch the currently last block of the blockchain
         if self.public_key is None:
-            return Nonep
+            return None
         last_block = self.__chain[-1]
         last_block2 = last_block.__dict__.copy()
         previous_hashed_block = last_block2['current_hash']
@@ -271,7 +274,7 @@ class Blockchain:
         #     'amount': MINING_REWARD
         # }
         reward_transaction = Transaction(
-            'MINING', self.public_key, '', MINING_REWARD)
+            'MINING', self.public_key, '', MINING_REWARD, id)
         # Copy transaction instead of manipulating the original
         # open_transactions list
         # This ensures that if for some reason the mining should fail,
@@ -315,7 +318,8 @@ class Blockchain:
                     tx['sender'],
                     tx['recipient'],
                     tx['signature'],
-                    tx['amount'])]
+                    tx['amount'],
+                    tx['id'])]
         # Validate the proof of work of the block and store the result (True
         # or False) in a variable
         print(transactions)
@@ -343,10 +347,7 @@ class Blockchain:
         # uniquely identify it
         for itx in block['transactions']:
             for opentx in stored_transactions:
-                if (opentx.sender == itx['sender'] and
-                        opentx.recipient == itx['recipient'] and
-                        opentx.amount == itx['amount'] and
-                        opentx.signature == itx['signature']):
+                if (opentx.id == itx['id']):
                     try:
                         self.__open_transactions.remove(opentx)
                     except ValueError:
@@ -378,7 +379,8 @@ class Blockchain:
                             tx['sender'],
                             tx['recipient'],
                             tx['signature'],
-                            tx['amount']) for tx in block['transactions']
+                            tx['amount'],
+                            tx['id']) for tx in block['transactions']
                     ],
                         block['nonce'],
                         block['timestamp']) for block in node_chain

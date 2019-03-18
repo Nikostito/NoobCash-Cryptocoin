@@ -87,6 +87,7 @@ def broadcast_transaction():
         values['sender'],
         values['signature'],
         values['amount'],
+        values['id'],
         is_receiving=True)
     if success:
         response = {
@@ -95,7 +96,8 @@ def broadcast_transaction():
                 'sender': values['sender'],
                 'recipient': values['recipient'],
                 'amount': values['amount'],
-                'signature': values['signature']
+                'signature': values['signature'],
+                'id': values['id']
             }
         }
         return jsonify(response), 201
@@ -165,7 +167,8 @@ def add_transaction():
                 'sender': wallet.public_key,
                 'recipient': recipient,
                 'amount': amount,
-                'signature': signature
+                'signature': signature,
+                'id': id
             },
             'funds': blockchain.get_balance()
         }

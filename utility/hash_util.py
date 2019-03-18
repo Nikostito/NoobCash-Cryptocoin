@@ -24,3 +24,8 @@ def hash_block(block):
         tx.to_ordered_dict() for tx in hashable_block['transactions']
     ]
     return hash_string_256(json.dumps(hashable_block, sort_keys=True).encode())
+
+def hash_transaction(transaction):
+    #Create SHA-256 hash for the transaction. signature is added afterwords
+    transaction_json = json.dumps(transaction.__dict__, sort_keys = True).encode()
+    return hash_string_256(transaction_json)
