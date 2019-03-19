@@ -20,21 +20,30 @@ def get_network_ui():
 
 @app.route('/wallet', methods=['POST'])
 def create_keys():
-    wallet.create_keys()
-    if wallet.save_keys():
-        global blockchain
-        blockchain = Blockchain(wallet.public_key, wallet.private_key, first_node, nodes_number)
+    global blockchain
+    if first_node == 0:
         response = {
             'public_key': wallet.public_key,
             'private_key': wallet.private_key,
             'funds': blockchain.get_balance()
         }
         return jsonify(response), 201
+
     else:
-        response = {
-            'message': 'Saving the keys failed.'
-        }
-        return jsonify(response), 500
+        wallet.create_keys()
+        if wallet.save_keys():
+            blockchain = Blockchain(wallet.public_key, wallet.private_key, first_node, nodes_number)
+            response = {
+                'public_key': wallet.public_key,
+                'private_key': wallet.private_key,
+                'funds': blockchain.get_balance()
+            }
+            return jsonify(response), 201
+        else:
+            response = {
+                'message': 'Saving the keys failed.'
+            }
+            return jsonify(response), 500
 
 
 @app.route('/wallet', methods=['GET'])
@@ -287,7 +296,8 @@ if __name__ == '__main__':
     first_node = port - 5000
     nodes_number = args.nodes
     wallet = Wallet(first_node)
-    wallet.create_keys()
-    wallet.save_keys()
+    if first_node == 0:
+        wallet.create_keys()
+        wallet.save_keys()
     blockchain = Blockchain(wallet.public_key, wallet.private_key, first_node, nodes_number)
     app.run(host='0.0.0.0', port=first_node+5000, threaded=True)
