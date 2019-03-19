@@ -29,19 +29,75 @@ class Blockchain:
         :hosting_node: The connected node (which runs the blockchain).
     """
 
-    def __init__(self, public_key, node_id):
+    def __init__(self, public_key, node_id, nodes_number):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
-        genesis_block = Block(0, '1', 'n00b-c4sh1', [], 0, 0)
-        # Initializing our (empty) blockchain list
-        self.chain = [genesis_block]
-        # Unhandled transactions
-        self.__open_transactions = []
-        self.public_key = public_key
-        self.__peer_nodes = set()
-        self.node_id = node_id
-        self.resolve_conflicts = False
-        self.load_data()
+        print(node_id)
+        if node_id == 0:
+            trans1 = Transaction(
+                '0', public_key, '', 100*nodes_number, '', '', '')
+            genesis_block = Block(0, '1', 'n00b-c4sh1', [trans1], 0, 0)
+            # Initializing our (empty) blockchain list
+            self.chain = [genesis_block]
+            # Unhandled transactions
+            self.__open_transactions = []
+            self.public_key = public_key
+            self.__peer_nodes = set()
+            self.node_id = node_id
+            self.resolve_conflicts = False
+            peer_to_write = []
+            for i in range(nodes_number):
+                peer_to_write.append("localhost:500"+str(i))
+            with open('peer_nodes.txt', 'w') as outfile:
+                outfile.write(json.dumps(list(peer_to_write)))
+            self.load_data()
+            self.save_data()
+        else :
+            self.__open_transactions = []
+            self.public_key = public_key
+            with open('peer_nodes.txt', 'r') as outfile:
+                file_content = outfile.readlines()
+                peer_nodes = json.loads(file_content[0])
+            self.__peer_nodes = set(peer_nodes)
+            self.node_id = node_id
+            self.resolve_conflicts = False
+            self.update_blockchain_from_bootstrap()
+            self.save_data()
+
+    def update_blockchain_from_bootstrap(self):
+        """Initialize blockchain + open transactions data from a file."""
+        try:
+            with open('blockchain-0.txt','r') as f:
+                # file_content = pickle.loads(f.read())
+                file_content = f.readlines()
+                # blockchain = file_content['chain']
+                # open_transactions = file_content['ot']
+                blockchain = json.loads(file_content[0][:-1])
+                # We need to convert  the loaded data because Transactions
+                # should use OrderedDict
+                updated_blockchain = []
+                for block in blockchain:
+                    converted_tx = [Transaction(
+                        tx['sender'],
+                        tx['recipient'],
+                        tx['signature'],
+                        tx['amount'],
+                        tx['tx_sender'],
+                        tx['tx_recipient'],
+                        tx['id']) for tx in block['transactions']]
+                    updated_block = Block(
+                        block['index'],
+                        block['previous_hash'],
+                        block['current_hash'],
+                        converted_tx,
+                        block['nonce'],
+                        block['timestamp'])
+                    updated_blockchain.append(updated_block)
+                self.chain = updated_blockchain
+        except (IOError, IndexError):
+            pass
+        finally:
+            print('Blockchain Updated!')
 
     # This turns the chain attribute into a property with a getter (the method
     # below) and a setter (@chain.setter)
