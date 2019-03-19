@@ -23,7 +23,7 @@ def create_keys():
     wallet.create_keys()
     if wallet.save_keys():
         global blockchain
-        blockchain = Blockchain(wallet.public_key, first_node, nodes_number)
+        blockchain = Blockchain(wallet.public_key, wallet.private_key, first_node, nodes_number)
         response = {
             'public_key': wallet.public_key,
             'private_key': wallet.private_key,
@@ -41,7 +41,7 @@ def create_keys():
 def load_keys():
     if wallet.load_keys():
         global blockchain
-        blockchain = Blockchain(wallet.public_key, first_node, nodes_number)
+        blockchain = Blockchain(wallet.public_key, wallet.private_key, first_node, nodes_number)
         response = {
             'public_key': wallet.public_key,
             'private_key': wallet.private_key,
@@ -285,8 +285,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     port = args.port
     first_node = port - 5000
-    print(first_node)
     nodes_number = args.nodes
     wallet = Wallet(first_node)
-    blockchain = Blockchain(wallet.public_key, first_node, nodes_number)
+    wallet.create_keys()
+    wallet.save_keys()
+    blockchain = Blockchain(wallet.public_key, wallet.private_key, first_node, nodes_number)
     app.run(host='0.0.0.0', port=first_node+5000, threaded=True)

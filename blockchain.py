@@ -29,10 +29,9 @@ class Blockchain:
         :hosting_node: The connected node (which runs the blockchain).
     """
 
-    def __init__(self, public_key, node_id, nodes_number):
+    def __init__(self, public_key, private_key, node_id, nodes_number):
         """The constructor of the Blockchain class."""
         # Our starting block for the blockchain
-        print(node_id)
         if node_id == 0:
             trans1 = Transaction(
                 '0', public_key, '', 100*nodes_number, '', '', '')
@@ -42,6 +41,7 @@ class Blockchain:
             # Unhandled transactions
             self.__open_transactions = []
             self.public_key = public_key
+            self.private_key = private_key
             self.__peer_nodes = set()
             self.node_id = node_id
             self.resolve_conflicts = False
