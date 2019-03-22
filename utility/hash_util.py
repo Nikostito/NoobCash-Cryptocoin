@@ -27,5 +27,6 @@ def hash_block(block):
 
 def hash_transaction(transaction):
     #Create SHA-256 hash for the transaction. signature is added afterwords
-    transaction_json = json.dumps(transaction.__dict__, sort_keys = True).encode()
+    transaction = transaction.__dict__.copy()
+    transaction_json = json.dumps(transaction, sort_keys = True).encode()
     return hash_string_256(transaction_json)

@@ -14,7 +14,7 @@ class Transaction(Printable):
         :amount: The amount of coins sent.
     """
 
-    def __init__(self, sender, recipient, signature, amount, tx_sender, tx_recipient, id):
+    def __init__(self, sender, recipient, signature, amount, tx_sender, tx_recipient):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
@@ -29,4 +29,5 @@ class Transaction(Printable):
                             ('recipient', self.recipient),
                             ('amount', self.amount),
                             ('tx_sender', self.tx_sender),
-                            ('tx_recipient', self.tx_recipient)])
+                            ('tx_recipient', self.tx_recipient),
+                            ('id', self.id)])

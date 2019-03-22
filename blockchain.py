@@ -4,7 +4,7 @@ import time
 import json
 import pickle
 import requests
-
+import os
 # Import two functions from our hash_util.py file. Omit the ".py" in the import
 from utility.hash_util import hash_block
 from utility.verification import Verification
@@ -14,7 +14,7 @@ from wallet import Wallet
 
 # The reward we give to miners (for creating a new block)
 MINING_REWARD = 10
-BLOCK_CAPACITY = 4 # To kanoniko block capcity einai to val ths metablhths auths + 1 ka8ws ksekinane ta transactions apo to #index 0
+BLOCK_CAPACITY = 10 # To kanoniko block capcity einai to val ths metablhths auths + 1 ka8ws ksekinane ta transactions apo to #index 0
 
 print(__name__)
 
@@ -34,15 +34,15 @@ class Blockchain:
         # Our starting block for the blockchain
         if node_id == 0:
             trans1 = Transaction(
-                '0', public_key, '', 100*nodes_number, '', '', '')
+                '0', public_key, '', 100*nodes_number, '', '')
             genesis_block = Block(0, '1', 'n00b-c4sh1', [trans1], 0, 0)
             # Initializing our (empty) blockchain list
             self.chain = [genesis_block]
             # Unhandled transactions
+            # if not self.__open_transactions:
             self.__open_transactions = []
             self.public_key = public_key
             self.private_key = private_key
-            self.__peer_nodes = set()
             self.node_id = node_id
             self.resolve_conflicts = False
             peer_to_write = []
@@ -50,6 +50,12 @@ class Blockchain:
                 peer_to_write.append("localhost:500"+str(i))
             with open('peer_nodes.txt', 'w') as outfile:
                 outfile.write(json.dumps(list(peer_to_write)))
+            with open('peer_nodes.txt', 'r') as outfile:
+                file_content = outfile.readlines()
+                peer_nodes = json.loads(file_content[0])
+            self.__peer_nodes = set(peer_nodes)
+            node_url = "localhost:500"+str(node_id)
+            self.peer_cleaner(node_url)
             self.load_data()
             self.save_data()
         else :
@@ -59,10 +65,13 @@ class Blockchain:
                 file_content = outfile.readlines()
                 peer_nodes = json.loads(file_content[0])
             self.__peer_nodes = set(peer_nodes)
+            node_url = "localhost:500"+str(node_id)
+            self.peer_cleaner(node_url)
             self.node_id = node_id
             self.resolve_conflicts = False
             self.update_blockchain_from_bootstrap()
             self.save_data()
+
 
     def update_blockchain_from_bootstrap(self):
         """Initialize blockchain + open transactions data from a file."""
@@ -83,8 +92,7 @@ class Blockchain:
                         tx['signature'],
                         tx['amount'],
                         tx['tx_sender'],
-                        tx['tx_recipient'],
-                        tx['id']) for tx in block['transactions']]
+                        tx['tx_recipient']) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'],
                         block['previous_hash'],
@@ -133,8 +141,7 @@ class Blockchain:
                         tx['signature'],
                         tx['amount'],
                         tx['tx_sender'],
-                        tx['tx_recipient'],
-                        tx['id']) for tx in block['transactions']]
+                        tx['tx_recipient']) for tx in block['transactions']]
                     updated_block = Block(
                         block['index'],
                         block['previous_hash'],
@@ -155,8 +162,7 @@ class Blockchain:
                         tx['signature'],
                         tx['amount'],
                         tx['tx_sender'],
-                        tx['tx_recipient'],
-                        tx['id'])
+                        tx['tx_recipient'])
                     updated_transactions.append(updated_transaction)
                 self.__open_transactions = updated_transactions
                 peer_nodes = json.loads(file_content[2])
@@ -308,7 +314,7 @@ class Blockchain:
                 if tx.recipient == participant
             ] for block in self.__chain
         ]
-        transaction = Transaction(sender, recipient, signature, amount, tx_sender, tx_recipient, id)
+        transaction = Transaction(sender, recipient, signature, amount, tx_sender, tx_recipient)
         if Verification.verify_transaction(transaction, self.get_balance):
             self.__open_transactions.append(transaction)
             self.save_data()
@@ -321,9 +327,8 @@ class Blockchain:
                                                      'sender': sender,
                                                      'recipient': recipient,
                                                      'amount': amount,
-                                                     'id': id,
                                                      'signature': signature
-                                                 })
+                                                    })
                         if (response.status_code == 400 or
                                 response.status_code == 500):
                             print('Transaction declined, needs resolving')
@@ -369,7 +374,7 @@ class Blockchain:
             ] for block in self.__chain
         ]
         reward_transaction = Transaction(
-            'MINING', self.public_key, '', MINING_REWARD, tx_sender, tx_recipient, id)
+            'MINING', self.public_key, '', MINING_REWARD, tx_sender, tx_recipient)
         # Copy transaction instead of manipulating the original
         # open_transactions list
         # This ensures that if for some reason the mining should fail,
@@ -416,8 +421,7 @@ class Blockchain:
                     tx['signature'],
                     tx['amount'],
                     tx['tx_sender'],
-                    tx['tx_recipient'],
-                    tx['id'])]
+                    tx['tx_recipient'])]
         # Validate the proof of work of the block and store the result (True
         # or False) in a variable
         proof_is_valid = Verification.valid_proof(
@@ -425,7 +429,7 @@ class Blockchain:
         # Check if previous_hash stored in the block is equal to the local
         # blockchain's last block's hash and store the result in a block
         hashes_match = hash_block(self.chain[-1]) == block['previous_hash']
-        current_hash= self.chain[index]
+        current_hash= self.chain[:]
         if not proof_is_valid or not hashes_match:
             return False
         # Create a Block object
@@ -444,7 +448,15 @@ class Blockchain:
         # uniquely identify it
         for itx in block['transactions']:
             for opentx in stored_transactions:
-                if (opentx.id == itx['id']):
+                # if (opentx.id == itx['id']):
+                #     try:
+                #         self.__open_transactions.remove(opentx)
+                #     except ValueError:
+                #         print('Item was already removed')
+                if (opentx.sender == itx['sender'] and
+                        opentx.recipient == itx['recipient'] and
+                        opentx.amount == itx['amount'] and
+                        opentx.signature == itx['signature']):
                     try:
                         self.__open_transactions.remove(opentx)
                     except ValueError:
@@ -478,8 +490,7 @@ class Blockchain:
                             tx['signature'],
                             tx['amount'],
                             tx['tx_sender'],
-                            tx['tx_recipient'],
-                            tx['id']) for tx in block['transactions']
+                            tx['tx_recipient']) for tx in block['transactions']
                     ],
                         block['nonce'],
                         block['timestamp']) for block in node_chain
@@ -519,6 +530,9 @@ class Blockchain:
         """
         self.__peer_nodes.discard(node)
         self.save_data()
+
+    def peer_cleaner(self, node):
+        self.__peer_nodes.discard(node)
 
     def get_peer_nodes(self):
         """Return a list of all connected peer nodes."""
